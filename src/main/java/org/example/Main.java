@@ -2,6 +2,7 @@ package org.example;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
 import java.io.File;
 
 public class Main {
@@ -10,7 +11,14 @@ public class Main {
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        // Create a panel to hold the button
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        frame.getContentPane().add(buttonPanel);
+
         JButton chooseFileButton = new JButton("Choose Excel File");
+        chooseFileButton.setPreferredSize(new Dimension(150, 50)); // Set button size
+        // Add an empty border around the button to control its size
+        chooseFileButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         chooseFileButton.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Choose Excel File");
@@ -31,13 +39,16 @@ public class Main {
                 if (saveReturnValue == JFileChooser.APPROVE_OPTION) {
                     File saveFile = saveFileChooser.getSelectedFile();
                     String arffFilePath = saveFile.getAbsolutePath();
-                    dataconverter.convertExcelToArff(filePath, arffFilePath); // it will be fixed location after testing
+                    dataconverter.convertExcelToArff(filePath, arffFilePath);
                 }
             }
         });
 
-        frame.getContentPane().add(chooseFileButton);
-        frame.pack();
+        // Add the button to the panel
+        buttonPanel.add(chooseFileButton);
+
+        frame.setSize(400, 200); // Set frame size
+        frame.setLocationRelativeTo(null); // Open frame in the middle of the screen
         frame.setVisible(true);
     }
 }
