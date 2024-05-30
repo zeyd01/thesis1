@@ -4,9 +4,12 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.time.LocalDate;
 
 public class Main {
-
+    private static final String DATA_FOLDER_NAME = "data";
     public static void main(String[] args) {
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -47,8 +50,37 @@ public class Main {
         // Add the button to the panel
         buttonPanel.add(chooseFileButton);
 
+
+
+
         frame.setSize(400, 200); // Set frame size
         frame.setLocationRelativeTo(null); // Open frame in the middle of the screen
         frame.setVisible(true);
+    }
+    // ELAZIĞ
+    // Method to fetch and save yearly weather data using weatherhistoryAPI
+    public static void fetchAndSaveYearlyWeatherData() {
+        weatherhistoryAPI api = new weatherhistoryAPI();
+        try {
+            // Construct the file path for saving yearly weather data
+            String filePath = Paths.get(DATA_FOLDER_NAME, "weather_data_" + LocalDate.now().getYear() + ".arff").toString();
+            api.fetchAndSaveWeatherData("38.680969", "39.226398", LocalDate.now().getYear());
+            System.out.println("Yearly weather data fetched and saved successfully!");
+        } catch (IOException ex) {
+            System.err.println("Failed to fetch yearly weather data: " + ex.getMessage());
+        }
+    }
+
+    // Method to fetch and save monthly weather data using weatherAPImonthly
+    public static void fetchAndSaveMonthlyWeatherData() {
+        weatherAPImonthly api = new weatherAPImonthly();
+        try {
+            // Construct the file path for saving monthly weather data
+            String filePath = Paths.get(DATA_FOLDER_NAME, "weather_data_" + LocalDate.now().getYear() + "-" + LocalDate.now().getMonthValue() + ".arff").toString();
+            api.fetchAndSaveWeatherData("38.680969", "39.226398");
+            System.out.println("Monthly weather data fetched and saved successfully!");
+        } catch (IOException ex) {
+            System.err.println("Failed to fetch monthly weather data: " + ex.getMessage());
+        }
     }
 }
