@@ -8,15 +8,16 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class weatherhistoryAPI {
-
-    private static final String API_KEY = "c303342a6ee73763d924a176f7d7ed12";
-    private static final String BASE_URL = "https://api.openweathermap.org/data/2.5/onecall/timemachine";
+    private static final String API_KEY = "be9a30b14079f875a7ae7e931502ac4a";
+    private static final String BASE_URL = "https://history.openweathermap.org/data/2.5/aggregated/year";
     private OkHttpClient client;
 
     public weatherhistoryAPI() {
@@ -31,29 +32,22 @@ public class weatherhistoryAPI {
     private List<JsonObject> getYearlyWeatherData(String lat, String lon, int year) throws IOException {
         List<JsonObject> weatherData = new ArrayList<>();
 
-        LocalDate startDate = LocalDate.of(year, 1, 1);
-        LocalDate endDate = LocalDate.of(year, 12, 31);
+        HttpUrl url = HttpUrl.parse(BASE_URL).newBuilder()
+                .addQueryParameter("lat", lat)
+                .addQueryParameter("lon", lon)
+                .addQueryParameter("appid", API_KEY)
+                .build();
 
-        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            long timestamp = date.atStartOfDay().toEpochSecond(ZoneOffset.UTC);
-            HttpUrl url = HttpUrl.parse(BASE_URL).newBuilder()
-                    .addQueryParameter("lat", lat)
-                    .addQueryParameter("lon", lon)
-                    .addQueryParameter("dt", String.valueOf(timestamp))
-                    .addQueryParameter("appid", API_KEY)
-                    .build();
-
-            Request request = new Request.Builder().url(url).build();
-            try (Response response = client.newCall(request).execute()) {
-                if (response.isSuccessful() && response.body() != null) {
-                    String responseBody = response.body().string();
-                    JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
-                    weatherData.add(json);
-                }
-            } catch (IOException e) {
-                System.err.println("Failed to fetch weather data for date: " + date);
-                e.printStackTrace();
+        Request request = new Request.Builder().url(url).build();
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful() && response.body() != null) {
+                String responseBody = response.body().string();
+                JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
+                weatherData.add(json);
             }
+        } catch (IOException e) {
+            System.err.println("Failed to fetch yearly weather data: " + e.getMessage());
+            throw e; // Rethrow the exception to indicate failure
         }
 
         return weatherData;
@@ -61,31 +55,35 @@ public class weatherhistoryAPI {
 
     public void saveWeatherDataToARFF(List<JsonObject> weatherData, String filename) throws IOException {
         try (FileWriter file = new FileWriter(filename)) {
-            // Write ARFF header
+
             file.write("@RELATION weather_data\n\n");
-            file.write("@ATTRIBUTE tarih DATE \"yyyy-MM-dd\"\n");
-            file.write("@ATTRIBUTE sicaklik NUMERIC\n");
-            file.write("@ATTRIBUTE nem NUMERIC\n");
-            file.write("@ATTRIBUTE basinc NUMERIC\n");
-            file.write("@ATTRIBUTE rüzgar_siddeti NUMERIC\n");
-            file.write("@ATTRIBUTE hava_tipi STRING\n\n");
+            file.write("@ATTRIBUTE date DATE \"yyyy-MM-dd\"\n");
+            file.write("@ATTRIBUTE tempature NUMERIC\n");
+            file.write("@ATTRIBUTE humidity NUMERIC\n");
+            file.write("@ATTRIBUTE pressure NUMERIC\n");
+            file.write("@ATTRIBUTE wind_speed NUMERIC\n");
+            file.write("@ATTRIBUTE weather STRING\n\n");
             file.write("@DATA\n");
 
-            for (JsonObject jsonObject : weatherData) {
-                // Extract necessary fields from the JSON object
-                long timestamp = jsonObject.get("current").getAsJsonObject().get("dt").getAsLong();
-                String date = LocalDate.ofEpochDay(timestamp / 86400).toString(); // Convert timestamp to ISO date
-                String temperature = jsonObject.get("current").getAsJsonObject().get("temp").getAsString();
-                String humidity = jsonObject.get("current").getAsJsonObject().get("humidity").getAsString();
-                String pressure = jsonObject.get("current").getAsJsonObject().get("pressure").getAsString();
-                String windSpeed = jsonObject.get("current").getAsJsonObject().get("wind_speed").getAsString();
-                String weatherDescription = jsonObject.get("current").getAsJsonObject()
-                        .get("weather").getAsJsonArray().get(0).getAsJsonObject().get("description").getAsString();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-                // Write a line in ARFF format
-                file.write(String.join(",", date, temperature, humidity, pressure, windSpeed, weatherDescription));
-                file.write("\n");
+            for (JsonObject jsonObject : weatherData) {
+                if (jsonObject.has("current")) {
+                    JsonObject current = jsonObject.getAsJsonObject("current");
+                    long timestamp = current.get("dt").getAsLong();
+                    String date = Instant.ofEpochSecond(timestamp).atOffset(ZoneOffset.UTC).toLocalDate().format(formatter);
+                    String temperature = current.get("temp").getAsString();
+                    String humidity = current.get("humidity").getAsString();
+                    String pressure = current.get("pressure").getAsString();
+                    String windSpeed = current.get("wind_speed").getAsString();
+                    String weatherDescription = current.get("weather").getAsJsonArray().get(0).getAsJsonObject().get("description").getAsString();
+
+                    // Write a line in ARFF format
+                    file.write(String.join(",", date, temperature, humidity, pressure, windSpeed, weatherDescription));
+                    file.write("\n");
+                }
             }
         }
     }
+
 }
