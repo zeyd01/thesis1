@@ -9,7 +9,6 @@ import java.time.format.DateTimeFormatter;
 
 import static org.example.Main.DATA_FOLDER_NAME;
 
-
 public class GUI {
     private JButton dosyaSeçButton;
     private JLabel aylıkStokKartıYüklemesiTextField;
@@ -23,13 +22,11 @@ public class GUI {
     private JLabel stokTarihi;
     private JLabel bolge;
     private JButton alışverişListesiniOluşturButton;
-    LocalDate currentDate = LocalDate.now();
-    LocalDate startDate = LocalDate.of(currentDate.getYear(), currentDate.getMonthValue(), 1);
     private static final String DOSYA_SEC_KEY = "dosya_sec";
     private static final String GUNCELLE_KEY = "guncelle";
     private static final String EKLE_KEY = "ekle";
-    boolean dosyaSec=false;
-    boolean guncelle=false;
+    private boolean dosyaSec = false;
+    private boolean guncelle = false;
     private JFrame frame;
 
     public GUI() {
@@ -52,56 +49,58 @@ public class GUI {
             public void actionPerformed(ActionEvent e) {
                 Main.fetchAndSaveYearlyWeatherData();
                 ekleButton.setEnabled(false);
-                DateUtil.setLastUpdateDate(EKLE_KEY, currentDate);
+                DateUtil.setLastUpdateDate(EKLE_KEY, LocalDate.now());
                 checkAllActionsCompleted();
             }
         });
-        güncelleButton.addActionListener(new ActionListener() {
 
+        güncelleButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-            Main.fetchAndSaveMonthlyWeatherData();
-            havaDurumuT.setText("Son Güncelleme Tarihi: "+startDate);
-                DateUtil.setLastUpdateDate(GUNCELLE_KEY, currentDate);
+                Main.fetchAndSaveMonthlyWeatherData();
+                havaDurumuT.setText("Son Güncelleme Tarihi: " + LocalDate.now());
+                DateUtil.setLastUpdateDate(GUNCELLE_KEY, LocalDate.now());
+                guncelle = true; // Update guncelle status
                 checkAllActionsCompleted();
             }
         });
+
         dosyaSeçButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-            Main.chooseFileButton();
-            stokTarihi.setText("Son Güncelleme Tarihi: "+startDate);
-                DateUtil.setLastUpdateDate(DOSYA_SEC_KEY, currentDate);
+                Main.chooseFileButton();
+                stokTarihi.setText("Son Güncelleme Tarihi: " + LocalDate.now());
+                DateUtil.setLastUpdateDate(DOSYA_SEC_KEY, LocalDate.now());
+                dosyaSec = true; // Update dosyaSec status
                 checkAllActionsCompleted();
             }
         });
-        alışverişListesiniOluşturButton.setEnabled(true);
+
+        alışverişListesiniOluşturButton.setEnabled(false); // Initially set to false
         alışverişListesiniOluşturButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 frame.dispose(); // Close the current frame
                 new ShopList();
             }
         });
+
+        checkAndSetButtonStates(); // Ensure button states are set correctly on initialization
     }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 new GUI().frame.setVisible(true);
             }
         });
-
-
     }
+
     public void checkAndSetButtonStates() {
+        LocalDate currentDate = LocalDate.now();
         LocalDate lastDosyaSecDate = DateUtil.getLastUpdateDate(DOSYA_SEC_KEY);
         LocalDate lastGuncelleDate = DateUtil.getLastUpdateDate(GUNCELLE_KEY);
         LocalDate lastEkleDate = DateUtil.getLastUpdateDate(EKLE_KEY);
 
-        if (currentDate.equals(lastDosyaSecDate)) {
-            dosyaSec=true;
-        }
-        if (currentDate.equals(lastGuncelleDate)) {
-            guncelle=true;
-        }
-
+        dosyaSec = currentDate.equals(lastDosyaSecDate);
+        guncelle = currentDate.equals(lastGuncelleDate);
 
         checkAllActionsCompleted();
     }
@@ -109,5 +108,4 @@ public class GUI {
     public void checkAllActionsCompleted() {
         alışverişListesiniOluşturButton.setEnabled(dosyaSec && guncelle);
     }
-
 }
